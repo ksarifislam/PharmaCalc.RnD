@@ -1,0 +1,756 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>PharmaCalc.RnD</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one centred working column under a sticky app bar; tabs switch Assay / Impurity / Nitrosamine. */
+:root{
+  --bg:#eef1f7; --card:#ffffff; --soft:#f5f7fc; --tint:#e9f6f5; --ink:#14213d; --mut:#556080; --line:#d3daea;
+  --pri:#1e3a8a; --btn:#1e3a8a; --btn2:#e3e8f4; --head:#1e3a8a; --acc:#0ea5a4; --accd:#0b7a79;
+  --ok:#15803d; --bad:#b91c1c; --warn:#b45309; --xbg:#fde8e8; --tabbg:#2f4fa8; --tabfg:#dbe4ff;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1424; --card:#172036; --soft:#1c2742; --tint:#12302f; --ink:#e7ecf8; --mut:#9aa7c7; --line:#2b3860;
+  --pri:#93b0ff; --btn:#3d62d1; --btn2:#26324f; --head:#16244d; --acc:#2fc3c1; --accd:#5fe0dd;
+  --ok:#4ade80; --bad:#f87171; --warn:#fbbf24; --xbg:#3d1d24; --tabbg:#243a7a; --tabfg:#c7d4fb; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1424; --card:#172036; --soft:#1c2742; --tint:#12302f; --ink:#e7ecf8; --mut:#9aa7c7; --line:#2b3860;
+  --pri:#93b0ff; --btn:#3d62d1; --btn2:#26324f; --head:#16244d; --acc:#2fc3c1; --accd:#5fe0dd;
+  --ok:#4ade80; --bad:#f87171; --warn:#fbbf24; --xbg:#3d1d24; --tabbg:#243a7a; --tabfg:#c7d4fb; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--sans);font-size:15px;background:var(--bg);color:var(--ink);
+  padding-block:0 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--head)}
+header{background:var(--head);color:#fff;padding:16px 16px 12px;position:sticky;top:env(safe-area-inset-top,0px);z-index:11;
+  max-width:720px;margin:0 auto;border-radius:0 0 14px 14px}
+header h1{margin:0;font-size:22px;font-weight:600;letter-spacing:-.01em}
+header p{margin:2px 0 0;font-size:13px;opacity:.8}
+main{padding:14px 0;max-width:720px;margin:auto}
+section{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;border:1px solid var(--line)}
+h2{margin:0 0 12px;font-size:13px;font-weight:600;color:var(--pri);text-transform:uppercase;letter-spacing:.07em;text-wrap:balance}
+.row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.row label{flex:1.1;font-size:14px;min-width:0}.row .f{flex:1;min-width:0}
+input,select{width:100%;padding:10px;font-size:16px;font-family:var(--sans);border:1.5px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+input{font-variant-numeric:tabular-nums}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--pri);outline-offset:1px}
+input:focus,select:focus{border-color:var(--pri)}
+.unit{width:96px;flex:none}
+.sub{background:var(--soft);border:1px dashed var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.sub h3{margin:0 0 8px;font-size:13px;color:var(--mut);font-weight:600}
+.prep{background:var(--tint);border-radius:10px;padding:12px;font-size:14px;line-height:1.65;overflow-wrap:anywhere}
+.prep b{color:var(--accd);font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums}
+.prep .vol{font-size:18px}
+.hide{display:none}
+.btns{display:flex;gap:8px}
+button{flex:1;padding:13px;font-size:16px;font-family:var(--sans);border:0;border-radius:10px;font-weight:600;cursor:pointer}
+.go{background:var(--btn);color:#fff}.clr{background:var(--btn2);color:var(--ink)}
+.result{text-align:center}.big{font-size:40px;font-weight:600;margin:6px 0;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.pass{color:var(--ok)}.fail{color:var(--bad)}
+.steps{font-size:13px;color:var(--mut);text-align:left;line-height:1.7;margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+small{color:var(--mut)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+textarea{width:100%;padding:10px;font-size:16px;font-family:var(--mono);border:1.5px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);resize:vertical}
+.chart{width:100%;height:auto;display:block;margin-top:8px}
+th,td{padding:4px 6px}
+.tabs button{flex:1 1 28%;padding:9px 4px;font-size:15px;border-radius:8px;background:var(--tabbg);color:var(--tabfg)}
+.tabs button.on{background:var(--card);color:var(--pri)}
+.x{flex:none!important;width:44px;padding:8px!important;background:var(--xbg)!important;color:var(--bad)}
+.imp{border-left:4px solid var(--acc)}
+.card{border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0;text-align:left;font-size:14px;line-height:1.65;overflow-wrap:anywhere}
+.card b.n{font-size:15px}
+.warn{color:var(--warn);font-weight:600}
+.fm{display:block;text-align:center}
+.fm.hide{display:none}
+.note{font-size:12.5px;color:var(--mut);line-height:1.55}
+@media (min-width:900px){
+  main{padding-top:18px}
+  section{padding:20px 22px}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<header><h1>PharmaCalc.RnD</h1><p>Enter target concentration → get preparation volumes</p>
+<div class="tabs"><button id="tA" class="on">Assay</button><button id="tI">Impurity</button><button id="tN">Nitrosamine</button><button id="tR">%RSD</button><button id="tL">Linearity</button></div></header>
+<main>
+<section id="impCrit" class="hide">
+<h2>Impurity acceptance criteria (ICH)</h2>
+<div class="row"><label>Product type</label><div class="f"><select id="itype"><option value="B">Drug product – Q3B(R2)</option><option value="A">Drug substance – Q3A(R2)</option></select></div></div>
+<div class="row"><label>MDD <small>(max daily dose of drug substance)</small></label><div class="f"><input id="mdd" type="number" inputmode="decimal" value="200"></div><select id="mddu" class="unit"></select></div>
+<div class="prep" id="ithr" style="margin-bottom:12px"></div>
+<div class="row"><label>Reporting threshold <small>(custom, %)</small></label><div class="f"><input id="irepc" type="number" inputmode="decimal" step="any" placeholder="blank = ICH default"></div></div>
+<div class="note">Leave the reporting threshold blank to use the ICH value, or enter your own (e.g. the LOQ-based level). Next, enter the sample details; the standard level and preparation follow.</div>
+</section>
+
+<section id="impLoq" class="hide">
+<h2>LOQ level concentration</h2>
+<div class="row"><label>Sample concentration</label><div class="f"><input id="lsc" type="number" inputmode="decimal" step="any" value="0.2"></div><select id="lscu" class="unit"></select></div>
+<div class="prep" id="iloq"></div>
+<div class="note">LOQ level = reporting threshold × sample concentration. The reporting threshold comes from the criteria above (ICH or your custom value). This sample concentration is the same one used in the Sample section.</div>
+</section>
+
+<div id="app"></div>
+<section id="impLevel" class="hide">
+<h2>Standard level</h2>
+<div>
+<div class="row"><label>Prepare standard at</label><div class="f"><select id="ilevel">
+<option value="U">Unspecified limit (ID threshold)</option>
+<option value="K">Specified limit (Qualification threshold)</option>
+<option value="R">Reporting threshold = LOQ level</option>
+<option value="C">Custom % of sample conc</option></select></div></div>
+<div class="row hide" id="icustomRow"><label>Custom level (%)</label><div class="f"><input id="icustom" type="number" inputmode="decimal" step="any" value="0.1"></div></div>
+<div class="prep" id="ireq"></div></div>
+</section>
+
+
+
+<section id="aResp">
+<h2>Response (optional)</h2>
+<div class="row"><label>Std peak area</label><div class="f"><input id="as" type="number" inputmode="decimal" placeholder="e.g. 1250000"></div></div>
+<div class="row"><label>Sample peak area</label><div class="f"><input id="am" type="number" inputmode="decimal" placeholder="e.g. 1243000"></div></div>
+<div class="row"><label>Spec limit (%)</label><div class="f"><input id="lo" type="number" inputmode="decimal" value="90"></div><div class="f"><input id="hi" type="number" inputmode="decimal" value="110"></div></div>
+<div class="btns"><button class="clr" id="reset">Reset</button><button class="go" id="calc">Calculate</button></div>
+</section>
+
+<section id="impResp" class="hide">
+<h2>Impurity peaks &amp; results</h2>
+<div class="row"><label>Std peak area</label><div class="f"><input id="ias" type="number" inputmode="decimal" placeholder="e.g. 52000"></div></div>
+<div class="row"><label>Response factor</label><div class="f"><select id="rmode"><option value="div">RRF (divide)</option><option value="mul">Correction factor (multiply)</option></select></div></div>
+<div id="imps"></div>
+<button class="clr" id="addimp" style="width:100%;margin-bottom:10px">+ Add impurity</button>
+<div class="row"><label>Total impurities limit (%) <small>optional</small></label><div class="f"><input id="itot" type="number" inputmode="decimal" placeholder="e.g. 2.0"></div></div>
+<div class="btns"><button class="go" id="icalc">Calculate impurities</button></div>
+</section>
+
+<section class="result hide" id="impRes"><h2>Impurity result</h2><div id="impOut"></div></section>
+
+<section id="nitSec" class="hide">
+<h2>Nitrosamine impurities</h2>
+<div class="note" style="margin-bottom:10px">Based on FDA <i>Control of Nitrosamine Impurities in Human Drugs</i>, ICH M7(R2) and USP &lt;1469&gt;.<br>Limit (ppm) = AI (ng/day) ÷ MDD (mg/day).</div>
+<div class="row"><label>MDD <small>(max daily dose of drug)</small></label><div class="f"><input id="nmdd" type="number" inputmode="decimal" step="any" value="100"></div><select id="nmddu" class="unit"></select></div>
+<div class="row"><label>Standard level <small>(% of limit)</small></label><div class="f"><input id="nlev" type="number" inputmode="decimal" step="any" value="100"></div><span class="unit">%</span></div>
+<div class="row"><label>LOQ level <small>(% of standard)</small></label><div class="f"><input id="nloq" type="number" inputmode="decimal" step="any" value="10"></div><span class="unit">%</span></div>
+<div class="note" id="nlevnote" style="margin-bottom:10px"></div>
+
+<div class="sub"><h3>Sample preparation</h3>
+<div class="row"><label>Sample concentration <small>(target)</small></label><div class="f"><input id="nsc" type="number" inputmode="decimal" step="any" value="20"></div><select id="nscu" class="unit"></select></div>
+<div class="row"><label>Sample weight</label><div class="f"><input id="nsw" type="number" inputmode="decimal" step="any" value="500"></div><select id="nswu" class="unit"></select></div>
+<div class="row"><label>Dilution</label><div class="f"><select id="nsd"></select></div></div>
+<div id="nssteps"></div>
+<div class="prep" id="nsinfo"></div></div>
+
+<h2 style="margin-top:6px">Nitrosamine standards</h2>
+<div id="nrows"></div>
+<button class="clr" id="addnit" style="width:100%;margin-bottom:10px">+ Add nitrosamine</button>
+<div class="row"><label>Multiple nitrosamines</label><div class="f"><select id="nsum"><option value="ratio">Σ (intake ÷ AI) ≤ 1</option><option value="lowest">Total ≤ lowest AI (FDA 2020)</option></select></div></div>
+<div class="btns"><button class="go" id="ncalc">Calculate nitrosamines</button></div>
+</section>
+
+<section class="result hide" id="nitRes"><h2>Nitrosamine result</h2><div id="nitOut"></div></section>
+
+<section id="rsdSec" class="hide">
+<h2>%RSD – replicate standard areas</h2>
+<div class="row"><label>Peak areas <small>(one per injection; separate by line, space or comma – paste from your CDS)</small></label></div>
+<textarea id="rsdin" rows="7" placeholder="e.g. 50120&#10;50310&#10;49980">50120
+50310
+49980
+50240
+50075
+50190</textarea>
+<div class="row" style="margin-top:10px"><label>Acceptance: %RSD NMT</label><div class="f"><input id="rsdlim" type="number" inputmode="decimal" step="any" value="2.0"></div><span class="unit">%</span></div>
+<div id="rsdout"></div>
+<div class="btns"><button class="clr" id="rsdclr">Clear areas</button></div>
+</section>
+
+<section id="linSec" class="hide">
+<h2>Linearity – concentration vs area</h2>
+<div class="row"><label>Concentration source</label><div class="f"><select id="linmode"><option value="S">From stock + dilution (auto)</option><option value="D">Direct entry</option></select></div></div>
+<div class="row"><label>Concentration unit <small>(results)</small></label><div class="f"><select id="linu"></select></div></div>
+<div class="sub" id="linstock"><h3>Stock solution</h3>
+<div class="row"><label>Std weight</label><div class="f"><input id="lsw" type="number" inputmode="decimal" step="any" value="50"></div><select id="lswu" class="unit"></select></div>
+<div class="row"><label>Purity (%)</label><div class="f"><input id="lsp" type="number" inputmode="decimal" step="any" value="100"></div></div>
+<div class="row"><label>Made up to</label><div class="f"><input id="lsv" type="number" inputmode="decimal" step="any" value="50"></div><select id="lsvu" class="unit"></select></div>
+<div class="prep" id="lsinfo"></div></div>
+<div class="row"><label>Test (100%) concentration <small>(for % level)</small></label><div class="f"><input id="lint" type="number" inputmode="decimal" step="any" value="100"></div></div>
+<div class="note" id="linex" style="margin-bottom:8px">Example data shown. Replace with your levels (ICH Q2: at least 5 concentrations).</div>
+<div id="linrows" class="hide"></div>
+<div id="linprows"></div>
+<button class="clr" id="linadd" style="width:100%;margin-bottom:10px">+ Add level</button>
+<div class="row"><label>Acceptance: r NLT</label><div class="f"><input id="linr" type="number" inputmode="decimal" step="any" value="0.999"></div></div>
+<div class="row"><label>Y-intercept NMT <small>(% of 100% response)</small></label><div class="f"><input id="liny" type="number" inputmode="decimal" step="any" value="2.0"></div><span class="unit">%</span></div>
+<div id="linout"></div>
+</section>
+
+<section class="result hide" id="res">
+<h2>Assay result</h2>
+<div class="big" id="pct">–</div><div id="verdict"></div><div class="steps" id="steps"></div>
+</section>
+<small id="aFormula" class="fm">Assay % = (A<sub>sample</sub>/A<sub>std</sub>) × (C<sub>std</sub>/C<sub>sample</sub>) × Std potency</small>
+<small id="iFormula" class="fm hide">Impurity % = (A<sub>imp</sub>/A<sub>std</sub>) × (C<sub>std</sub>/C<sub>sample</sub>) × 100 ÷ RRF</small>
+<small id="nFormula" class="fm hide">Result (ppm) = (r<sub>U</sub>/r<sub>S</sub>) × (C<sub>S</sub> ng/mL ÷ C<sub>U</sub> mg/mL) · Limit = AI ÷ MDD</small>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const num=id=>parseFloat($(id).value);
+// conversion to base units: mg, mL, mg/mL
+const W={'µg':1e-3,'mg':1,'g':1e3,'kg':1e6};
+const V={'µL':1e-3,'mL':1,'L':1e3};
+const C={'ng/mL':1e-6,'µg/mL':1e-3,'mg/mL':1,'g/mL':1e3,'µg/L':1e-6,'mg/L':1e-3,'g/L':1,'ppm':1e-3,'ppb':1e-6};
+const NAMES=['single','double','triple','four-fold','five-fold'];
+const FLASKS=[1,2,5,10,20,25,50,100,200,250,500,1000,2000,5000];
+const opts=(o,d)=>Object.keys(o).map(k=>`<option${k===d?' selected':''}>${k}</option>`).join('');
+
+function block(p,title,isStd){
+  return `<section id="${p}sec"><h2>${title}</h2>
+  <div class="row"><label>${isStd?'Std':'Sample'} concentration <small>(target, API)</small></label><div class="f"><input id="${p}c" type="number" inputmode="decimal" value="0.2"></div><select id="${p}cu" class="unit">${opts(C,'mg/mL')}</select></div>
+  <div class="row"><label>${isStd?'Std':'Sample'} weight${isStd?' <small>(given amount)</small>':''}</label><div class="f"><input id="${p}w" type="number" inputmode="decimal" value="${isStd?20:200}"></div><select id="${p}wu" class="unit">${opts(W,'mg')}</select></div>
+  ${isStd?`<div class="row"><label>Std potency (%)</label><div class="f"><input id="${p}p" type="number" inputmode="decimal" value="100"></div></div>
+  <div class="row"><label>Conversion factor <small>(salt → API, e.g. MW base/MW salt)</small></label><div class="f"><input id="${p}cf" type="number" inputmode="decimal" value="1" step="any"></div></div>`
+  :`<div class="row"><label>Equivalent wt <small>(API in sample wt)</small></label><div class="f"><input id="${p}e" type="number" inputmode="decimal" value="20"></div><select id="${p}eu" class="unit">${opts(W,'mg')}</select></div>
+  <div class="sub"><h3>Sample weight from average weight &amp; label claim (optional)</h3>
+  <div class="row"><label>Average weight <small>(per unit)</small></label><div class="f"><input id="${p}avg" type="number" inputmode="decimal" placeholder="e.g. 500"></div><select id="${p}avgu" class="unit">${opts(W,'mg')}</select></div>
+  <div class="row"><label>Label claim <small>(API per unit)</small></label><div class="f"><input id="${p}lc" type="number" inputmode="decimal" placeholder="e.g. 50"></div><select id="${p}lcu" class="unit">${opts(W,'mg')}</select></div></div>`}
+  <div class="row"><label>Dilution</label><div class="f"><select id="${p}d">${NAMES.map((n,i)=>`<option value="${i+1}">${n}</option>`).join('')}</select></div></div>
+  <div id="${p}stages"></div>
+  <div class="row"><label>Actual volume used <small>(optional)</small></label><div class="f"><input id="${p}av" type="number" inputmode="decimal" placeholder="blank = calculated"></div><select id="${p}avu" class="unit">${opts(V,'mL')}</select></div>
+  <div class="prep" id="${p}prep"></div></section>`;
+}
+$('app').innerHTML=block('s','Standard',true)+block('m','Sample',false);
+
+function stages(p){
+  const n=+$(p+'d').value, box=$(p+'stages');
+  const have=box.children.length;
+  if(have===n-1)return;
+  let h='';
+  for(let i=2;i<=n;i++){
+    const a=$(p+'a'+i)?.value??5, f=$(p+'f'+i)?.value??50;
+    const au=$(p+'au'+i)?.value??'mL', fu=$(p+'fu'+i)?.value??'mL';
+    h+=`<div class="sub"><h3>Dilution step ${i-1}</h3>
+    <div class="row"><label>Pipette (aliquot)</label><div class="f"><input id="${p}a${i}" type="number" inputmode="decimal" value="${a}"></div><select id="${p}au${i}" class="unit">${opts(V,au)}</select></div>
+    <div class="row"><label>Make up to</label><div class="f"><input id="${p}f${i}" type="number" inputmode="decimal" value="${f}"></div><select id="${p}fu${i}" class="unit">${opts(V,fu)}</select></div></div>`;
+  }
+  box.innerHTML=h;
+  box.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',refresh));
+}
+
+const fmt=(x,d=4)=>isFinite(x)?(+x.toPrecision(d)).toString():'–';
+function fv(ml){ // auto volume unit
+  if(ml<1)return fmt(ml*1000)+' µL'; if(ml>=1000)return fmt(ml/1000)+' L'; return fmt(ml)+' mL';}
+function fw(mg){
+  if(mg<1)return fmt(mg*1000)+' µg'; if(mg>=1e6)return fmt(mg/1e6)+' kg'; if(mg>=1000)return fmt(mg/1000)+' g'; return fmt(mg)+' mg';}
+
+function calcSide(p,isStd){
+  const tc=num(p+'c')*C[$(p+'cu').value];                    // mg/mL
+  const w=num(p+'w')*W[$(p+'wu').value];                     // mg weighed
+  const pot=isStd?num(p+'p')/100:1;
+  const cf=isStd?(num(p+'cf')||1):1;
+  const api=isStd?w:num(p+'e')*W[$(p+'eu').value];       // mg API in the weighed amount
+  const n=+$(p+'d').value;
+  let df=1,steps=[];
+  for(let i=2;i<=n;i++){
+    const a=num(p+'a'+i)*V[$(p+'au'+i).value], f=num(p+'f'+i)*V[$(p+'fu'+i).value];
+    df*=f/a; steps.push({a,f});
+  }
+  const weigh=isStd?w/(pot*cf):w;                           // original amount to weigh
+  const v1=api/(tc*df);                                      // mL calculated first volume
+  const av=num(p+'av')*V[$(p+'avu').value];
+  const vUsed=isFinite(av)&&av>0?av:v1;
+  const avActive=isFinite(av)&&av>0;
+  const cActual=api/(vUsed*df);                               // mg/mL final
+  const flask=FLASKS.find(x=>x>=v1)||v1;
+  const scale=flask/v1;
+  return {avActive,weigh,cf,tc,w,api,df,steps,v1,vUsed,cActual,flask,scale,isStd,n,pot};
+}
+function render(p,isStd){
+  const r=calcSide(p,isStd);
+  if(!isFinite(r.v1)||r.v1<=0){$(p+'prep').innerHTML='Enter valid values';return r}
+  let h=`<div>Used volume: <b class="vol">${fv(r.v1)}</b></div>`;
+  h+=`Weigh <b>${fw(r.weigh)}</b>${isStd?` (original amount; ≙ given ${fw(r.w)}${r.cf!==1||r.pot!==1?`, potency ${fmt(r.pot*100)}% × CF ${fmt(r.cf)}`:''})`:` (≙ ${fw(r.api)} API)`}, dissolve and make up to <b>${fv(r.vUsed)}</b>.`;
+  let c=r.api/r.vUsed;
+  r.steps.forEach((s,i)=>{c=c*s.a/s.f;h+=`<br>Step ${i+1}: pipette <b>${fv(s.a)}</b>${i===0&&r.avActive?' <small>(auto-adjusted for actual volume)</small>':''} → make up to <b>${fv(s.f)}</b>.`});
+  if(!isStd){const avg=num('mavg')*W[$('mavgu').value],lc=num('mlc')*W[$('mlcu').value];
+    if(avg>0&&lc>0)h+=`<br><small>Sample weight ${fw(r.w)} = equivalent ${fw(r.api)} × (avg wt ${fw(avg)} ÷ label claim ${fw(lc)})</small>`;}
+  h+=`<br>Total dilution factor: <b>${fmt(r.df)}</b> · Final conc: <b>${fmt(r.cActual,5)} mg/mL</b>`;
+  if(Math.abs(r.flask-r.v1)/r.v1>1e-6)h+=`<br><small>Nearest flask ${fv(r.flask)}: weigh ${fw(r.weigh*r.scale)}${isStd?'':` (≙ ${fw(r.api*r.scale)} API)`}</small>`;
+  $(p+'prep').innerHTML=h;
+  return r;
+}
+function autoAdjust(p,tid){
+  // analyst changed the actual volume -> recompute the first dilution aliquot so the final concentration stays on target
+  if(tid===p+'a2')return;                      // manual edit of the aliquot wins
+  const n=+$(p+'d').value, av=num(p+'av')*V[$(p+'avu').value];
+  if(n<2||!(av>0))return;
+  const r=calcSide(p,p==='s');
+  const f2=num(p+'f2')*V[$(p+'fu2').value];
+  let rest=1;
+  for(let i=3;i<=n;i++)rest*=(num(p+'f'+i)*V[$(p+'fu'+i).value])/(num(p+'a'+i)*V[$(p+'au'+i).value]);
+  const needed=r.api/(r.tc*av);                // total dilution factor required
+  const a2=f2*rest/needed;                     // mL
+  if(isFinite(a2)&&a2>0)$(p+'a2').value=+(a2/V[$(p+'au2').value]).toPrecision(5);
+}
+function autoWeight(tid){
+  // sample weight = equivalent weight x (average weight / label claim)
+  if(tid==='mw'||tid==='mwu')return;
+  const avg=num('mavg')*W[$('mavgu').value], lc=num('mlc')*W[$('mlcu').value], eq=num('me')*W[$('meu').value];
+  if(avg>0&&lc>0&&eq>0)$('mw').value=+(eq*avg/lc/W[$('mwu').value]).toPrecision(5);
+}
+var STDMAN=false;   // true when the analyst typed their own standard concentration
+function refresh(ev){
+  stages('s');stages('m');
+  const tid=ev&&ev.target?ev.target.id:'';
+  if(tid==='sc'||tid==='scu')STDMAN=true;
+  else if(['itype','mdd','mddu','ilevel','icustom','irepc','mc','mcu'].includes(tid))STDMAN=false;
+  if(MODE==='I')autoStd();
+  if(ev&&ev.target&&ev.target.id)autoWeight(ev.target.id);
+  if(ev&&ev.target&&ev.target.id){autoAdjust('s',ev.target.id);autoAdjust('m',ev.target.id)}
+  render('s',true);render('m',false);
+}
+document.querySelectorAll('#app input,#app select').forEach(e=>e.addEventListener('input',refresh));
+$('sd').addEventListener('change',refresh);$('md').addEventListener('change',refresh);
+
+$('calc').onclick=()=>{
+  refresh();
+  const S=calcSide('s',true),M=calcSide('m',false);
+  const res=$('res');res.classList.remove('hide');
+  const as=num('as'),am=num('am');
+  let html=`Std final conc: ${fmt(S.cActual,5)} mg/mL (from given amount)<br>Sample final conc: ${fmt(M.cActual,5)} mg/mL`;
+  if(!isFinite(as)||!isFinite(am)||as<=0){
+    $('pct').className='big';$('pct').textContent=fmt(S.cActual/M.cActual*100,5)+' %';
+    $('verdict').textContent='Concentration-based (enter peak areas for assay)';
+  }else{
+    const pct=(am/as)*(S.cActual/M.cActual)*100;
+    const lo=num('lo'),hi=num('hi'),ok=pct>=lo&&pct<=hi;
+    $('pct').className='big '+(ok?'pass':'fail');$('pct').textContent=fmt(pct,5)+' %';
+    $('verdict').innerHTML=ok?`<b class="pass">PASS</b> (${lo}–${hi}%)`:`<b class="fail">FAIL</b> (limit ${lo}–${hi}%)`;
+    html+=`<br>Area ratio (sample/std): ${fmt(am/as,5)}`;
+  }
+  $('steps').innerHTML=html;res.scrollIntoView({behavior:'smooth'});
+};
+$('reset').onclick=()=>location.reload();
+refresh();
+
+// ---------- Tabs ----------
+var MODE='A';
+function setTab(t){
+  const imp=t==='I',nit=t==='N';MODE=t;
+  $('tA').classList.toggle('on',t==='A');$('tI').classList.toggle('on',imp);$('tN').classList.toggle('on',nit);
+  ['aResp','aFormula'].forEach(i=>$(i).classList.toggle('hide',t!=='A'));
+  ['impCrit','impResp','impLevel','impLoq','iFormula'].forEach(i=>$(i).classList.toggle('hide',!imp));
+  ['nitSec','nFormula'].forEach(i=>$(i).classList.toggle('hide',!nit));
+  $('app').classList.toggle('hide',nit||t==='R'||t==='L');
+  $('rsdSec').classList.toggle('hide',t!=='R');$('linSec').classList.toggle('hide',t!=='L');
+  $('tR').classList.toggle('on',t==='R');$('tL').classList.toggle('on',t==='L');
+  if(t!=='A')$('res').classList.add('hide');
+  if(!imp)$('impRes').classList.add('hide');
+  if(!nit)$('nitRes').classList.add('hide');
+  if(imp){$('app').insertBefore($('msec'),$('ssec'));$('app').insertBefore($('impLoq'),$('msec'));$('app').insertBefore($('impLevel'),$('ssec'))}
+  else{$('app').insertBefore($('ssec'),$('msec'));$('app').appendChild($('impLevel'));$('app').appendChild($('impLoq'))}
+  STDMAN=false;
+  if(imp&&!setTab.done){setTab.done=1;$('sd').value='3';}
+  document.querySelector('header p').textContent=imp?'Sample conc + ICH limit → standard preparation':nit?'AI ÷ MDD limit → standard preparation & result':t==='R'?'Mean, SD and %RSD of replicate areas':t==='L'?'Slope, intercept, r, % recovery':'Enter target concentration → get preparation volumes';
+  refresh();
+}
+$('tA').onclick=()=>setTab('A');$('tI').onclick=()=>setTab('I');$('tN').onclick=()=>setTab('N');$('tR').onclick=()=>setTab('R');$('tL').onclick=()=>setTab('L');
+
+// ---------- ICH thresholds (m = MDD in mg) ----------
+function thr(type,m){
+  const r={};
+  if(type==='A'){            // ICH Q3A(R2) drug substance
+    const hi=m>2000;
+    r.rep=hi?0.03:0.05;
+    r.id=hi?{p:0.05}:{p:0.10,t:1.0};
+    r.q=hi?{p:0.05}:{p:0.15,t:1.0};
+  }else{                      // ICH Q3B(R2) drug product
+    r.rep=m<=1000?0.1:0.05;
+    r.id=m<1?{p:1.0,t:0.005}:m<=10?{p:0.5,t:0.02}:m<=2000?{p:0.2,t:2}:{p:0.10};
+    r.q=m<10?{p:1.0,t:0.05}:m<=100?{p:0.5,t:0.2}:m<=2000?{p:0.2,t:3}:{p:0.15};
+  }
+  const cr=parseFloat(($('irepc')||{}).value);
+  r.repCustom=isFinite(cr)&&cr>0;if(r.repCustom)r.rep=cr;
+  const eff=o=>o.t?Math.min(o.p,o.t/m*100):o.p;
+  r.idE=eff(r.id);r.qE=eff(r.q);
+  return r;
+}
+const rule=o=>o.t?`${o.p}% or ${fw(o.t)} TDI, whichever is lower`:`${o.p}%`;
+function renderThr(){
+  const m=num('mdd')*W[$('mddu').value];
+  if(!(m>0)){$('ithr').textContent='Enter MDD';return null}
+  const t=thr($('itype').value,m);
+  const td=pct=>fw(pct/100*m);
+  const line=(nm,o,e)=>`<b>${nm}</b>: ${rule(o)}`+(o.t?`<br>&nbsp;&nbsp;TDI as %: ${fw(o.t)} ÷ ${fw(m)} × 100 = ${fmt(o.t/m*100,3)}%`:'')+`<br>&nbsp;&nbsp;→ applied <b>${fmt(e,3)}%</b> = ${td(e)}/day<br>`;
+  $('ithr').innerHTML=`<b>${$('itype').value==='A'?'ICH Q3A(R2)':'ICH Q3B(R2)'}</b> · MDD ${fw(m)}/day<br>
+  <b>Reporting</b>: &gt; <b>${t.rep}%</b> ${t.repCustom?'<span class="warn">(custom)</span>':'(ICH)'} = ${td(t.rep)}/day<br>`+line('Identification',t.id,t.idE)+line('Qualification',t.q,t.qE)+
+  `<hr style="border:0;border-top:1px solid var(--line)">
+  <b>Acceptance criteria</b><br>
+  Any unspecified impurity: NMT <b>${fmt(t.idE,3)}%</b><br>
+  Specified impurity (not qualified otherwise): NMT <b>${fmt(t.qE,3)}%</b>`;
+  return t;
+}
+function renderLoq(t,cm){
+  if(!t||!(cm>0)){$('iloq').textContent='Enter sample concentration and MDD.';return}
+  const rep=t.rep,c=cm*rep/100;
+  $('iloq').innerHTML=`Reporting threshold: <b>${rep}%</b> ${t.repCustom?'<span class="warn">(custom)</span>':'(ICH)'}<br>
+  LOQ level conc = ${fmt(cm,5)} mg/mL × ${rep}% ÷ 100<br>
+  = <b>${fmt(c,5)} mg/mL</b><br>= <b>${fmt(c*1e3,5)} µg/mL</b> = ${fmt(c*1e6,5)} ng/mL`;
+}
+function autoStd(){
+  const t=renderThr();
+  const lv=$('ilevel').value;
+  $('icustomRow').classList.toggle('hide',lv!=='C');
+  const pct=!t?NaN:lv==='U'?t.idE:lv==='K'?t.qE:lv==='R'?t.rep:parseFloat($('icustom').value);
+  const cm=num('mc')*C[$('mcu').value];
+  if(document.activeElement!==$('lsc')){$('lsc').value=$('mc').value}
+  $('lscu').value=$('mcu').value;
+  renderLoq(t,cm);
+  if(!(cm>0)){$('ireq').textContent='Enter a valid sample concentration.';return}
+  if(STDMAN){   // analyst's own standard concentration
+    const cs=num('sc')*C[$('scu').value];
+    $('ireq').innerHTML=`<span class="warn">Manual standard conc</span>: ${fmt(cs,5)} mg/mL = <b>${fmt(cs/cm*100,4)}%</b> of sample conc`+
+      (isFinite(pct)&&pct>0?`<br>Criteria level (${fmt(pct,3)}%) would be ${fmt(cm*pct/100,5)} mg/mL<br><small>Change level, MDD or sample conc to recalculate automatically.</small>`:'');
+    return;
+  }
+  if(isFinite(pct)&&pct>0){
+    const ct=cm*pct/100;
+    $('sc').value=+(ct/C[$('scu').value]).toPrecision(5);
+    $('ireq').innerHTML=`Sample conc ${fmt(cm,5)} mg/mL × ${fmt(pct,3)}% ÷ 100<br>= Standard conc <b>${fmt(ct,5)} mg/mL</b> (${fmt(ct*1000,5)} µg/mL)<br><small>Preparation is shown in the Standard section below. You can edit the standard concentration there.</small>`;
+  }else $('ireq').textContent='Enter a valid MDD and level.';
+}
+
+$('mddu').innerHTML=opts(W,'mg');
+$('lscu').innerHTML=opts(C,'mg/mL');
+['lsc','lscu'].forEach(i=>$(i).addEventListener('input',()=>{
+  $('mc').value=$('lsc').value;$('mcu').value=$('lscu').value;
+  refresh({target:$('mc')});}));
+['itype','mdd','mddu','ilevel','icustom','irepc'].forEach(i=>$(i).addEventListener('input',refresh));
+
+// ---------- Impurity rows ----------
+function addImp(name,type){
+  const d=document.createElement('div');d.className='sub imp';
+  d.innerHTML=`<div class="row"><div class="f"><input class="iname" placeholder="Impurity name" value="${name||''}"></div>
+  <select class="ikind unit" style="width:120px"><option value="K"${type==='K'?' selected':''}>Specified</option><option value="U"${type==='U'?' selected':''}>Unspecified</option></select>
+  <button class="x" type="button">✕</button></div>
+  <div class="row"><div class="f"><input class="iarea" type="number" inputmode="decimal" placeholder="Area"></div>
+  <div class="f"><input class="irrf" type="number" inputmode="decimal" step="any" value="1" placeholder="RRF / CF"></div>
+  <div class="f"><input class="ilim" type="number" inputmode="decimal" placeholder="Limit % (opt.)"></div></div>`;
+  $('imps').appendChild(d);
+  d.querySelector('.x').onclick=()=>d.remove();
+}
+$('addimp').onclick=()=>addImp('','K');
+addImp('Impurity A','K');addImp('Unspecified (largest)','U');
+
+$('icalc').onclick=()=>{
+  const out=$('impOut'),box=$('impRes');box.classList.remove('hide');
+  const m=num('mdd')*W[$('mddu').value];
+  const t=renderThr();
+  const S=calcSide('s',true),M=calcSide('m',false),as=num('ias');
+  if(!t||!(as>0)||!isFinite(S.cActual)||!isFinite(M.cActual)||M.cActual<=0){
+    out.innerHTML='<span class="warn">Enter MDD, std peak area and valid standard / sample preparation.</span>';return}
+  const mode=$('rmode').value;
+  let total=0,html='',n=0;
+  document.querySelectorAll('#imps .imp').forEach(d=>{
+    const a=parseFloat(d.querySelector('.iarea').value);
+    if(!isFinite(a))return;
+    n++;
+    const name=d.querySelector('.iname').value||('Impurity '+n);
+    const kind=d.querySelector('.ikind').value;
+    const f=parseFloat(d.querySelector('.irrf').value)||1;
+    const userLim=parseFloat(d.querySelector('.ilim').value);
+    const base=(a/as)*(S.cActual/M.cActual)*100;
+    const pct=mode==='div'?base/f:base*f;
+    const lim=isFinite(userLim)?userLim:(kind==='U'?t.idE:t.qE);
+    const limSrc=isFinite(userLim)?'your limit':(kind==='U'?'ICH identification threshold':'ICH qualification threshold');
+    const cat=pct>t.qE?'<span class="fail">Above qualification threshold – qualify</span>':
+              pct>t.idE?'<span class="warn">Above identification threshold – identify</span>':
+              pct>t.rep?'Above reporting threshold – report':'Below reporting threshold'+(t.repCustom?' (custom)':'');
+    const ok=pct<=lim;
+    if(pct>t.rep)total+=pct;
+    html+=`<div class="card"><b class="n">${name}</b> <small>(${kind==='U'?'unspecified':'specified'})</small><br>
+    Result: <b class="${ok?'pass':'fail'}">${fmt(pct,3)} %</b> · intake ${fw(pct/100*m)}/day<br>
+    ICH status: ${cat}<br>
+    Limit: NMT ${fmt(lim,3)} % (${limSrc}) → <b class="${ok?'pass':'fail'}">${ok?'PASS':'FAIL'}</b></div>`;
+  });
+  if(!n){out.innerHTML='<span class="warn">Enter at least one impurity peak area.</span>';return}
+  const tl=parseFloat($('itot').value);
+  html+=`<div class="card"><b class="n">Total impurities</b> <small>(sum of results above reporting threshold)</small><br>
+  <b class="${isFinite(tl)?(total<=tl?'pass':'fail'):''}">${fmt(total,3)} %</b>${isFinite(tl)?` · limit NMT ${tl}% → <b class="${total<=tl?'pass':'fail'}">${total<=tl?'PASS':'FAIL'}</b>`:''}</div>`;
+  html+=`<div class="note">Std conc ${fmt(S.cActual,5)} mg/mL · Sample conc ${fmt(M.cActual,5)} mg/mL. Thresholds are for organic impurities / degradation products; round results to the decimal places of the threshold per ICH before reporting. Higher thresholds need scientific justification; lower ones may be needed for unusually toxic impurities.</div>`;
+  out.innerHTML=html;box.scrollIntoView({behavior:'smooth'});
+};
+renderThr();
+
+
+// ---------- Nitrosamine (FDA / ICH M7 / USP <1469>) ----------
+const NIT=[['NDMA',96],['NDEA',26.5],['NMBA',96],['NMPA',26.5],['NIPEA',26.5],['NDIPA',26.5],['NDBA',26.5],
+ ['CPCA Category 1',26.5],['CPCA Category 2',100],['CPCA Category 3',400],['CPCA Category 4',1500],['CPCA Category 5',1500],
+ ['ICH M7 TTC (1.5 µg/day)',1500],['Custom',NaN]];
+$('nmddu').innerHTML=opts(W,'mg');$('nscu').innerHTML=opts(C,'mg/mL');$('nswu').innerHTML=opts(W,'mg');
+const dilOpts=NAMES.map((n,i)=>`<option value="${i+1}">${n}</option>`).join('');
+$('nsd').innerHTML=dilOpts;
+const num2=e=>parseFloat(e.value);
+
+// dilution step rows (steps 2..n): pipette (aliquot) + make up to
+function buildSteps(box,n,onChange){
+  const old=[...box.querySelectorAll('.nstep')].map(d=>[...d.querySelectorAll('input,select')].map(e=>e.value));
+  let h='';
+  for(let i=2;i<=n;i++){
+    const o=old[i-2]||['5','mL','50','mL'];
+    h+=`<div class="sub nstep"><h3>Dilution step ${i-1}</h3>
+    <div class="row"><label>Pipette (aliquot)</label><div class="f"><input class="sa" type="number" inputmode="decimal" step="any" value="${o[0]}"></div><select class="sau unit">${opts(V,o[1])}</select></div>
+    <div class="row"><label>Make up to</label><div class="f"><input class="sf" type="number" inputmode="decimal" step="any" value="${o[2]}"></div><select class="sfu unit">${opts(V,o[3])}</select></div></div>`;
+  }
+  box.innerHTML=h;
+  box.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',onChange));
+}
+function readSteps(box){
+  return [...box.querySelectorAll('.nstep')].map(d=>({
+    a:num2(d.querySelector('.sa'))*V[d.querySelector('.sau').value],
+    f:num2(d.querySelector('.sf'))*V[d.querySelector('.sfu').value]}));
+}
+const dfOf=st=>st.reduce((p,x)=>p*x.f/x.a,1);
+
+function nitCtx(){
+  return {mdd:num('nmdd')*W[$('nmddu').value],      // mg/day
+          cu:num('nsc')*C[$('nscu').value],          // mg/mL sample
+          lev:num('nlev')/100};
+}
+// ---- sample preparation ----
+function nitSample(){
+  const box=$('nsinfo'),x=nitCtx();
+  const w=num('nsw')*W[$('nswu').value];
+  const st=readSteps($('nssteps')),df=dfOf(st);
+  if(!(w>0)||!(x.cu>0)||!isFinite(df)){box.textContent='Enter sample weight and concentration.';return}
+  const v1=w/(x.cu*df);
+  let h=`Weigh <b>${fw(w)}</b>, dissolve and make up to <b>${fv(v1)}</b>.`;
+  st.forEach((s,i)=>{h+=`<br>Step ${i+1}: pipette <b>${fv(s.a)}</b> → make up to <b>${fv(s.f)}</b>.`});
+  h+=`<br>Total dilution factor: <b>${fmt(df)}</b> · Final sample conc: <b>${fmt(x.cu,5)} mg/mL</b>`;
+  box.innerHTML=h;
+}
+$('nsd').addEventListener('input',()=>{buildSteps($('nssteps'),+$('nsd').value,nitInfo);nitInfo()});
+buildSteps($('nssteps'),1,nitInfo);
+
+// ---- standards ----
+function addNit(i){
+  const d=document.createElement('div');d.className='sub imp nrow';
+  d.innerHTML=`<div class="row"><div class="f"><select class="nname">${NIT.map((n,k)=>`<option value="${k}"${k===i?' selected':''}>${n[0]}${isNaN(n[1])?'':' – '+n[1]+' ng/day'}</option>`).join('')}</select></div><button class="x" type="button">✕</button></div>
+  <div class="row"><label>AI (ng/day)</label><div class="f"><input class="nai" type="number" inputmode="decimal" step="any" value="${NIT[i][1]||''}"></div></div>
+  <div class="row"><label>Stock conc</label><div class="f"><input class="nstk" type="number" inputmode="decimal" step="any" value="1"></div><select class="nstku unit">${opts(C,'µg/mL')}</select></div>
+  <div class="row"><label>Dilution</label><div class="f"><select class="ndil">${dilOpts}</select></div></div>
+  <div class="row"><label>Step 1: make up to</label><div class="f"><input class="nv1" type="number" inputmode="decimal" step="any" value="10"></div><select class="nv1u unit">${opts(V,'mL')}</select></div>
+  <div class="nsteps"></div>
+  <div class="row"><div class="f"><input class="nrs" type="number" inputmode="decimal" step="any" placeholder="Std response"></div><div class="f"><input class="nru" type="number" inputmode="decimal" step="any" placeholder="Sample response"></div></div>
+  <div class="row"><label>LOQ solution S/N <small>(opt.)</small></label><div class="f"><input class="nsn" type="number" inputmode="decimal" step="any" placeholder="NLT 10"></div></div>
+  <div class="prep nrinfo"></div>`;
+  $('nrows').appendChild(d);
+  d.querySelector('.x').onclick=()=>{d.remove();nitInfo()};
+  d.querySelector('.nname').addEventListener('change',e=>{const v=NIT[+e.target.value][1];if(!isNaN(v))d.querySelector('.nai').value=v;nitInfo()});
+  d.querySelector('.ndil').addEventListener('input',e=>{buildSteps(d.querySelector('.nsteps'),+e.target.value,nitInfo);nitInfo()});
+  d.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',nitInfo));
+  buildSteps(d.querySelector('.nsteps'),1,nitInfo);
+  nitInfo();
+}
+function nitRow(d,x){
+  const ai=parseFloat(d.querySelector('.nai').value);
+  const limit=ai/x.mdd;                                   // ppm (= ng/mg = µg/g)
+  const cstd=limit*x.cu*x.lev;                            // ng/mL target standard
+  const stk=num2(d.querySelector('.nstk'))*C[d.querySelector('.nstku').value]*1e6;   // ng/mL
+  const v1=num2(d.querySelector('.nv1'))*V[d.querySelector('.nv1u').value];          // mL
+  const st=readSteps(d.querySelector('.nsteps')),dfRest=dfOf(st);
+  const aliq=cstd*dfRest*v1/stk;                          // mL of stock for step 1
+  return {ai,limit,cstd,stk,v1,st,dfRest,aliq,df:stk/cstd,name:NIT[+d.querySelector('.nname').value][0]};
+}
+function nitInfo(){
+  const x=nitCtx();
+  $('nlevnote').innerHTML=isFinite(x.lev)&&(x.lev<0.5||x.lev>1.5)?'<span class="warn">USP &lt;1469&gt; quantitation range is 50–150% of the limit; other levels suit sensitivity / LOQ solutions only.</span>':'USP &lt;1469&gt; quantitation range: 50–150% of the limit (limit test: r<sub>U</sub>/r<sub>S</sub> NMT 0.5 at the 50% level).';
+  nitSample();
+  document.querySelectorAll('#nrows .nrow').forEach(d=>{
+    const box=d.querySelector('.nrinfo');
+    if(!(x.mdd>0)||!(x.cu>0)||!(x.lev>0)){box.textContent='Enter MDD, sample conc and level.';return}
+    const r=nitRow(d,x);
+    if(!isFinite(r.limit)||r.limit<=0){box.textContent='Enter AI (ng/day).';return}
+    let h=`Limit = ${fmt(r.ai)} ng/day ÷ ${fmt(x.mdd)} mg/day = <b>${fmt(r.limit,4)} ppm</b> = ${fmt(r.limit*1000,4)} ppb (ng/g)<br>
+    Std conc @ ${fmt(x.lev*100)}% = <b>${fmt(r.cstd,4)} ng/mL</b> · dilution factor from stock <b>${fmt(r.df,4)}</b>`;
+    if(isFinite(r.aliq)&&r.aliq>0&&r.v1>0){
+      h+=`<br>Step 1: pipette <b>${fv(r.aliq)}</b> of stock (${fmt(r.stk/1e6,4)} mg/mL) → make up to <b>${fv(r.v1)}</b>`;
+      r.st.forEach((s,i)=>{h+=`<br>Step ${i+2}: pipette <b>${fv(s.a)}</b> → make up to <b>${fv(s.f)}</b>`});
+      if(r.aliq<0.1)h+=`<br><span class="warn">Step 1 aliquot is below 100 µL – add a dilution step or use a more dilute stock.</span>`;
+      if(r.aliq>r.v1)h+=`<br><span class="warn">Stock is more dilute than step 1 – use a stronger stock.</span>`;
+    }else h+=`<br><span class="warn">Check stock concentration and step volumes.</span>`;
+    const pl=parseFloat($('nloq').value);
+    if(pl>0){
+      const cl=r.cstd*pl/100, inS=r.limit*x.lev*pl/100, y=10, xv=y*pl/100;
+      h+=`<br><b>LOQ solution</b> (${fmt(pl)}% of std) = <b>${fmt(cl,4)} ng/mL</b><br>
+      = ${fmt(inS,4)} ppm (${fmt(inS*1000,4)} ppb) in sample = ${fmt(x.lev*pl,3)}% of limit<br>
+      Pipette <b>${fv(xv)}</b> of standard solution → make up to <b>${fv(y)}</b>`;
+    }
+    box.innerHTML=h;
+  });
+}
+['nmdd','nmddu','nsc','nscu','nsw','nswu','nlev','nloq'].forEach(i=>$(i).addEventListener('input',nitInfo));
+$('addnit').onclick=()=>addNit(13);
+addNit(0);addNit(1);
+
+$('ncalc').onclick=()=>{
+  const out=$('nitOut'),box=$('nitRes');box.classList.remove('hide');
+  const x=nitCtx();
+  if(!(x.mdd>0)||!(x.cu>0)||!(x.lev>0)){out.innerHTML='<span class="warn">Enter MDD, sample concentration and standard level.</span>';return}
+  let html='',n=0,sumRatio=0,totalIntake=0,minAI=Infinity;
+  document.querySelectorAll('#nrows .nrow').forEach(d=>{
+    const rs=num2(d.querySelector('.nrs')),ru=num2(d.querySelector('.nru'));
+    if(!(rs>0)||!isFinite(ru))return;
+    const r=nitRow(d,x);
+    if(!(r.limit>0))return;
+    const sn=num2(d.querySelector('.nsn'));
+    n++;
+    const ppm=(ru/rs)*(r.cstd/x.cu);                  // ng/mg = ppm
+    const intake=ppm*x.mdd;                           // ng/day
+    const ratio=intake/r.ai, ok=ppm<=r.limit;
+    sumRatio+=ratio;totalIntake+=intake;minAI=Math.min(minAI,r.ai);
+    html+=`<div class="card"><b class="n">${r.name}</b><br>
+    Result: <b class="${ok?'pass':'fail'}">${fmt(ppm,4)} ppm</b> = ${fmt(ppm*1000,4)} ppb (ng/g)<br>
+    Intake: ${fmt(intake,4)} ng/day · ${fmt(ratio*100,3)}% of AI (${fmt(r.ai)} ng/day)<br>
+    Limit: NMT ${fmt(r.limit,4)} ppm (${fmt(r.limit*1000,4)} ppb) → <b class="${ok?'pass':'fail'}">${ok?'PASS':'FAIL'}</b>${isFinite(sn)?`<br>LOQ solution S/N ${fmt(sn)} → <b class="${sn>=10?'pass':'fail'}">${sn>=10?'PASS':'FAIL'}</b> <small>(NLT 10)</small>`:''}</div>`;
+  });
+  if(!n){out.innerHTML='<span class="warn">Enter std and sample responses for at least one nitrosamine.</span>';return}
+  if(n>1){
+    const byRatio=$('nsum').value==='ratio';
+    const ok=byRatio?sumRatio<=1:totalIntake<=minAI;
+    html+=`<div class="card"><b class="n">Total nitrosamines</b><br>
+    Σ (intake ÷ AI) = <b>${fmt(sumRatio,4)}</b> · total intake ${fmt(totalIntake,4)} ng/day<br>
+    Criterion: ${byRatio?'Σ ≤ 1 (combined risk ≤ 1:100,000, ICH M7 / FDA 2024)':'total ≤ lowest AI '+fmt(minAI)+' ng/day (FDA 2020)'} →
+    <b class="${ok?'pass':'fail'}">${ok?'PASS':'FAIL'}</b><br>
+    <small>USP &lt;1469&gt;: if several are detected, consult the health authority.</small></div>`;
+  }
+  html+=`<div class="note">AI values: FDA recommended AI limits (NDMA 96, NDEA 26.5, NMBA 96, NMPA 26.5, NIPEA 26.5, NDIPA 26.5, NDBA 26.5 ng/day) and FDA CPCA categories 1–5 (26.5 / 100 / 400 / 1500 / 1500 ng/day). Check the current FDA / EMA lists for the specific nitrosamine or NDSRI; edit the AI if a newer value applies. Calculation assumes single-point standard response.</div>`;
+  out.innerHTML=html;box.scrollIntoView({behavior:'smooth'});
+};
+
+// ---------- %RSD ----------
+const nums=t=>t.split(/[\s;,]+/).map(parseFloat).filter(isFinite);
+function rsdCalc(){
+  const a=nums($('rsdin').value),out=$('rsdout'),lim=parseFloat($('rsdlim').value);
+  if(a.length<2){out.innerHTML='<div class="prep">Enter at least 2 areas.</div>';return}
+  const n=a.length,mean=a.reduce((p,x)=>p+x,0)/n;
+  const sd=Math.sqrt(a.reduce((p,x)=>p+(x-mean)**2,0)/(n-1));
+  const rsd=sd/mean*100,ok=!isFinite(lim)||rsd<=lim;
+  let h=`<div class="result"><div class="big ${isFinite(lim)?(ok?'pass':'fail'):''}">${fmt(rsd,4)} %</div>${isFinite(lim)?`<div><b class="${ok?'pass':'fail'}">${ok?'PASS':'FAIL'}</b> (NMT ${lim}%)</div>`:''}</div>
+  <div class="card">Injections (n): <b>${n}</b><br>Mean area: <b>${fmt(mean,6)}</b><br>SD (n−1): <b>${fmt(sd,5)}</b><br>Min / Max: ${fmt(Math.min(...a),6)} / ${fmt(Math.max(...a),6)}<br>Range: ${fmt((Math.max(...a)-Math.min(...a))/mean*100,3)}% of mean`;
+  if(n<5)h+=`<br><span class="warn">USP &lt;621&gt;: 5 or 6 replicate injections are normally used for system suitability.</span>`;
+  h+=`</div><div class="card"><b class="n">Each injection</b><br>`+a.map((x,i)=>`#${i+1}: ${x} <small>(${(x-mean)/mean*100>=0?'+':''}${fmt((x-mean)/mean*100,3)}% from mean)</small>`).join('<br>')+`</div>
+  <div class="note">%RSD = SD ÷ mean × 100, with SD calculated using n−1 (sample standard deviation).</div>`;
+  out.innerHTML=h;
+}
+['rsdin','rsdlim'].forEach(i=>$(i).addEventListener('input',rsdCalc));
+$('rsdclr').onclick=()=>{$('rsdin').value='';rsdCalc();$('rsdin').focus()};
+rsdCalc();
+
+// ---------- Linearity ----------
+$('linu').innerHTML=opts(C,'µg/mL');
+function addLin(c,a){
+  const d=document.createElement('div');d.className='row linrow';
+  d.innerHTML=`<div class="f"><input class="lc" type="number" inputmode="decimal" step="any" placeholder="Concentration" value="${c??''}"></div><div class="f"><input class="la" type="number" inputmode="decimal" step="any" placeholder="Area" value="${a??''}"></div><button class="x" type="button">✕</button>`;
+  $('linrows').appendChild(d);
+  d.querySelectorAll('input').forEach(e=>e.addEventListener('input',()=>{$('linex').textContent='';linCalc()}));
+  d.querySelector('.x').onclick=()=>{d.remove();linCalc()};
+}
+[[50,25012],[75,37480],[100,50120],[125,62610],[150,75045]].forEach(r=>addLin(...r));
+$('linadd').onclick=()=>addLin('','');
+function linCalc(){
+  const out=$('linout');
+  const pts=linPoints();
+  if(pts.length<3){out.innerHTML='<div class="prep">Enter at least 3 concentration / area pairs.</div>';return}
+  const n=pts.length,sx=pts.reduce((p,q)=>p+q[0],0),sy=pts.reduce((p,q)=>p+q[1],0);
+  const mx=sx/n,my=sy/n;
+  const sxx=pts.reduce((p,q)=>p+(q[0]-mx)**2,0),syy=pts.reduce((p,q)=>p+(q[1]-my)**2,0),sxy=pts.reduce((p,q)=>p+(q[0]-mx)*(q[1]-my),0);
+  if(!(sxx>0)){out.innerHTML='<div class="prep">Concentrations must differ.</div>';return}
+  const m=sxy/sxx,b=my-m*mx,r=sxy/Math.sqrt(sxx*syy),r2=r*r;
+  const sse=pts.reduce((p,q)=>p+(q[1]-(m*q[0]+b))**2,0);
+  const t=parseFloat($('lint').value),u=$('linu').value;
+  const rlim=parseFloat($('linr').value),ylim=parseFloat($('liny').value);
+  const y100=isFinite(t)&&t>0?m*t+b:NaN,ypct=b/y100*100;
+  const rok=!isFinite(rlim)||r>=rlim, yok=!isFinite(ylim)||!isFinite(ypct)||Math.abs(ypct)<=ylim;
+  const rfs=pts.map(q=>q[1]/q[0]),rfm=rfs.reduce((p,x)=>p+x,0)/n,rfsd=Math.sqrt(rfs.reduce((p,x)=>p+(x-rfm)**2,0)/(n-1));
+  let h=`<div class="card"><b class="n">Regression: y = ${fmt(m,6)} x ${b<0?'−':'+'} ${fmt(Math.abs(b),6)}</b><br>
+  Slope: <b>${fmt(m,6)}</b> (area per ${u})<br>Y-intercept: <b>${fmt(b,6)}</b>${isFinite(ypct)?` = <b class="${yok?'pass':'fail'}">${fmt(ypct,3)}%</b> of 100% response${isFinite(ylim)?` → ${yok?'<b class="pass">PASS</b>':'<b class="fail">FAIL</b>'} (NMT ${ylim}%)`:''}`:''}<br>
+  Correlation coefficient r: <b class="${rok?'pass':'fail'}">${fmt(r,7)}</b>${isFinite(rlim)?` → ${rok?'<b class="pass">PASS</b>':'<b class="fail">FAIL</b>'} (NLT ${rlim})`:''}<br>
+  r²: <b>${fmt(r2,7)}</b> · Residual SS: ${fmt(sse,5)} · n = ${n}<br>
+  Response factor (area ÷ conc): mean ${fmt(rfm,6)}, %RSD ${fmt(rfsd/rfm*100,3)}</div>`;
+  if(n<5)h+=`<div class="note warn">ICH Q2 recommends a minimum of 5 concentrations.</div>`;
+  // table
+  h+=`<div class="card" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap"><tr style="text-align:right;color:var(--mut)"><th style="text-align:left">Conc (${u})</th><th>% level</th><th>Area</th><th>Calc conc</th><th>% Rec</th><th>Resid</th></tr>`+
+  pts.map(q=>{const cc=(q[1]-b)/m,rec=cc/q[0]*100;return `<tr style="text-align:right"><td style="text-align:left">${fmt(q[0],5)}</td><td>${isFinite(t)&&t>0?fmt(q[0]/t*100,4):'–'}</td><td>${fmt(q[1],6)}</td><td>${fmt(cc,5)}</td><td>${fmt(rec,4)}</td><td>${fmt(q[1]-(m*q[0]+b),4)}</td></tr>`}).join('')+`</table></div>`;
+  // chart
+  const W_=320,H_=200,L=46,R=12,T=12,B=30;
+  const xs=pts.map(q=>q[0]),ys=pts.map(q=>q[1]);
+  let x0=Math.min(0,...xs),x1=Math.max(...xs)*1.05,y0=Math.min(0,b,...ys),y1=Math.max(...ys)*1.05;
+  const X=v=>L+(v-x0)/(x1-x0)*(W_-L-R),Y=v=>H_-B-(v-y0)/(y1-y0)*(H_-B-T);
+  const tk=(a,z)=>[0,.5,1].map(f=>a+(z-a)*f);
+  h+=`<svg class="chart" viewBox="0 0 ${W_} ${H_}" role="img" aria-label="Calibration plot">
+  <line x1="${L}" y1="${H_-B}" x2="${W_-R}" y2="${H_-B}" style="stroke:var(--line)"/><line x1="${L}" y1="${T}" x2="${L}" y2="${H_-B}" style="stroke:var(--line)"/>
+  ${tk(x0,x1).map(v=>`<text x="${X(v)}" y="${H_-B+14}" text-anchor="middle" font-size="9" style="fill:var(--mut)">${fmt(v,3)}</text>`).join('')}
+  ${tk(y0,y1).map(v=>`<line x1="${L}" x2="${W_-R}" y1="${Y(v)}" y2="${Y(v)}" style="stroke:var(--line)" stroke-dasharray="2 3"/><text x="${L-4}" y="${Y(v)+3}" text-anchor="end" font-size="9" style="fill:var(--mut)">${fmt(v,3)}</text>`).join('')}
+  <line x1="${X(x0)}" y1="${Y(m*x0+b)}" x2="${X(x1)}" y2="${Y(m*x1+b)}" style="stroke:var(--acc)" stroke-width="1.5"/>
+  ${pts.map(q=>`<circle cx="${X(q[0])}" cy="${Y(q[1])}" r="3.5" style="fill:var(--pri)"/>`).join('')}
+  <text x="${(L+W_-R)/2}" y="${H_-2}" text-anchor="middle" font-size="10" style="fill:var(--mut)">Concentration (${u})</text></svg>`;
+  h+=`<div class="note">Least-squares regression of area (y) on concentration (x). Y-intercept % uses the regression response at the test (100%) concentration. % Rec = back-calculated concentration ÷ actual × 100.</div>`;
+  out.innerHTML=h;
+}
+['linu','lint','linr','liny'].forEach(i=>$(i).addEventListener('input',linCalc));
+linCalc();
+
+// ---------- Linearity: concentration from stock + dilution ----------
+$('lswu').innerHTML=opts(W,'mg');$('lsvu').innerHTML=opts(V,'mL');
+function linStock(){
+  const w=num('lsw')*W[$('lswu').value],p=(num('lsp')||100)/100,v=num('lsv')*V[$('lsvu').value];
+  return w*p/v;   // mg/mL
+}
+function addLinP(a,f,area,n){
+  const d=document.createElement('div');d.className='sub imp lprow';
+  d.innerHTML=`<div class="row"><label><b>Added amount</b> <small>(aliquot of stock)</small></label><div class="f"><input class="pa" type="number" inputmode="decimal" step="any" value="${a??''}"></div><select class="pau unit">${opts(V,'mL')}</select><button class="x" type="button">✕</button></div>
+  <div class="row"><label>Make up to</label><div class="f"><input class="pf" type="number" inputmode="decimal" step="any" value="${f??''}"></div><select class="pfu unit">${opts(V,'mL')}</select></div>
+  <div class="row"><label>Dilution</label><div class="f"><select class="pd">${dilOpts}</select></div></div>
+  <div class="psteps"></div>
+  <div class="row"><label>Area</label><div class="f"><input class="pA" type="number" inputmode="decimal" step="any" value="${area??''}"></div></div>
+  <div class="prep pinfo"></div>`;
+  $('linprows').appendChild(d);
+  const go=()=>{$('linex').textContent='';linCalc()};
+  d.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',go));
+  d.querySelector('.pd').addEventListener('input',e=>{buildSteps(d.querySelector('.psteps'),+e.target.value,linCalc);linCalc()});
+  buildSteps(d.querySelector('.psteps'),n||1,linCalc);
+  d.querySelector('.pd').value=n||1;
+  d.querySelector('.x').onclick=()=>{d.remove();linCalc()};
+}
+[[2.5,50,25012],[3.75,50,37480],[5,50,50120],[6.25,50,62610],[7.5,50,75045]].forEach(r=>addLinP(...r));
+function linPoints(){
+  const u=$('linu').value,st=linStock();
+  $('linstock').classList.toggle('hide',$('linmode').value!=='S');
+  $('linrows').classList.toggle('hide',$('linmode').value!=='D');
+  $('linprows').classList.toggle('hide',$('linmode').value!=='S');
+  if($('linmode').value==='D')
+    return [...document.querySelectorAll('#linrows .linrow')].map(d=>[parseFloat(d.querySelector('.lc').value),parseFloat(d.querySelector('.la').value)]).filter(p=>isFinite(p[0])&&isFinite(p[1]));
+  $('lsinfo').innerHTML=isFinite(st)&&st>0?`Stock conc = ${fmt(num('lsw'))} ${$('lswu').value} × ${fmt(num('lsp')||100)}% ÷ ${fmt(num('lsv'))} ${$('lsvu').value} = <b>${fmt(st,6)} mg/mL</b> (${fmt(st*1000,6)} µg/mL)`:'Enter std weight and volume.';
+  const pts=[];
+  document.querySelectorAll('#linprows .lprow').forEach((d,i)=>{
+    const a=num2(d.querySelector('.pa'))*V[d.querySelector('.pau').value],f=num2(d.querySelector('.pf'))*V[d.querySelector('.pfu').value];
+    const stp=readSteps(d.querySelector('.psteps')),df=dfOf(stp),area=num2(d.querySelector('.pA'));
+    const box=d.querySelector('.pinfo'),c=st*a/f/df/C[u];
+    if(!isFinite(c)||!(c>0)){box.textContent='Enter added amount and volumes.';return}
+    let h=`Step 1: stock ${fv(a)} → make up to ${fv(f)}`;
+    stp.forEach((x,k)=>{h+=`<br>Step ${k+2}: pipette ${fv(x.a)} → make up to ${fv(x.f)}`});
+    h+=`<br>Total dilution factor: <b>${fmt(f/a*df,5)}</b><br>Concentration = <b>${fmt(c,6)} ${u}</b>`;
+    if(a>f)h+=`<br><span class="warn">Added amount is larger than the make-up volume.</span>`;
+    box.innerHTML=h;
+    if(isFinite(area))pts.push([c,area]);
+  });
+  return pts;
+}
+$('linmode').addEventListener('input',()=>{$('linex').textContent=$('linmode').value==='S'?'Example data shown. Change the added amount or dilution and the concentration updates automatically.':'Example data shown. Replace with your levels.';linCalc()});
+['lsw','lswu','lsp','lsv','lsvu'].forEach(i=>$(i).addEventListener('input',linCalc));
+$('linadd').onclick=()=>{ if($('linmode').value==='S')addLinP('','',''); else addLin('',''); };
+$('linex').textContent='Example data shown. Change the added amount or dilution and the concentration updates automatically.';
+linCalc();
+</script>
+
+</body></html>
