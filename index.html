@@ -55,7 +55,7 @@ small{color:var(--mut)}
 textarea{width:100%;padding:10px;font-size:16px;font-family:var(--mono);border:1.5px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);resize:vertical}
 .chart{width:100%;height:auto;display:block;margin-top:8px}
 th,td{padding:4px 6px}
-.tabs button{flex:1 1 28%;padding:9px 4px;font-size:15px;border-radius:8px;background:var(--tabbg);color:var(--tabfg)}
+.tabs button{flex:1 1 22%;padding:9px 2px;font-size:14px;border-radius:8px;background:var(--tabbg);color:var(--tabfg)}
 .tabs button.on{background:var(--card);color:var(--pri)}
 .x{flex:none!important;width:44px;padding:8px!important;background:var(--xbg)!important;color:var(--bad)}
 .imp{border-left:4px solid var(--acc)}
@@ -73,7 +73,7 @@ th,td{padding:4px 6px}
 </style>
 
 <header><h1>PharmaCalc.RnD</h1><p>Enter target concentration → get preparation volumes</p>
-<div class="tabs"><button id="tA" class="on">Assay</button><button id="tI">Impurity</button><button id="tN">Nitrosamine</button><button id="tR">%RSD</button><button id="tL">Linearity</button></div></header>
+<div class="tabs"><button id="tA" class="on">Assay</button><button id="tV">Recovery</button><button id="tI">Impurity</button><button id="tN">Nitrosamine</button><button id="tR">%RSD</button><button id="tL">Linearity</button><button id="tM">Molarity</button></div></header>
 <main>
 <section id="impCrit" class="hide">
 <h2>Impurity acceptance criteria (ICH)</h2>
@@ -136,6 +136,7 @@ th,td{padding:4px 6px}
 
 <div class="sub"><h3>Sample preparation</h3>
 <div class="row"><label>Sample concentration <small>(target)</small></label><div class="f"><input id="nsc" type="number" inputmode="decimal" step="any" value="20"></div><select id="nscu" class="unit"></select></div>
+<div class="row"><label>Made up to <small>(optional – weight adjusts)</small></label><div class="f"><input id="nsv" type="number" inputmode="decimal" step="any" placeholder="blank = from weight"></div><select id="nsvu" class="unit"></select></div>
 <div class="row"><label>Sample weight</label><div class="f"><input id="nsw" type="number" inputmode="decimal" step="any" value="500"></div><select id="nswu" class="unit"></select></div>
 <div class="row"><label>Dilution</label><div class="f"><select id="nsd"></select></div></div>
 <div id="nssteps"></div>
@@ -183,6 +184,29 @@ th,td{padding:4px 6px}
 <div id="linout"></div>
 </section>
 
+<section id="recSec" class="hide">
+<h2>Recovery – two standards</h2>
+<div class="note" style="margin-bottom:10px">Standard 1 is the reference. Enter weight, dilution and area for each standard. Recovery = (A<sub>2</sub> ÷ A<sub>1</sub>) × (C<sub>1</sub> ÷ C<sub>2</sub>) × 100. Example values shown, replace with yours.</div>
+<div id="recbox"></div>
+<div class="row"><label>Acceptance: recovery</label><div class="f"><input id="reclo" type="number" inputmode="decimal" step="any" value="98.0"></div><div class="f"><input id="rechi" type="number" inputmode="decimal" step="any" value="102.0"></div></div>
+<div id="recout"></div>
+</section>
+
+<section id="molSec" class="hide">
+<h2>Molarity / Normality</h2>
+<div class="row"><label>Solute</label><div class="f"><select id="msol"></select></div></div>
+<div class="sub"><h3>Solute data (set from the solute, editable)</h3>
+<div class="row"><label>Molecular weight <small>(g/mol)</small></label><div class="f"><input id="mmw" type="number" inputmode="decimal" step="any"></div></div>
+<div class="row"><label>Assay / purity <small>(% w/w)</small></label><div class="f"><input id="mas" type="number" inputmode="decimal" step="any"></div></div>
+<div class="row"><label>Specific gravity <small>(g/mL, liquids only)</small></label><div class="f"><input id="msg" type="number" inputmode="decimal" step="any" placeholder="solid"></div></div>
+<div class="row"><label>n-factor <small>(equivalents per mole)</small></label><div class="f"><input id="mnf" type="number" inputmode="decimal" step="any"></div></div>
+<div class="note" id="msnote"></div></div>
+<div class="row"><label>Prepare as</label><div class="f"><select id="mkind"><option value="M">Molarity</option><option value="N">Normality</option></select></div></div>
+<div class="row"><label>Required strength</label><div class="f"><input id="mval" type="number" inputmode="decimal" step="any" value="0.1"></div><select id="mvu" class="unit"></select></div>
+<div class="row"><label>Final volume</label><div class="f"><input id="mvol" type="number" inputmode="decimal" step="any" value="1000"></div><select id="mvolu" class="unit"></select></div>
+<div class="prep" id="molout"></div>
+</section>
+
 <section class="result hide" id="res">
 <h2>Assay result</h2>
 <div class="big" id="pct">–</div><div id="verdict"></div><div class="steps" id="steps"></div>
@@ -215,7 +239,7 @@ function block(p,title,isStd){
   <div class="row"><label>Label claim <small>(API per unit)</small></label><div class="f"><input id="${p}lc" type="number" inputmode="decimal" placeholder="e.g. 50"></div><select id="${p}lcu" class="unit">${opts(W,'mg')}</select></div></div>`}
   <div class="row"><label>Dilution</label><div class="f"><select id="${p}d">${NAMES.map((n,i)=>`<option value="${i+1}">${n}</option>`).join('')}</select></div></div>
   <div id="${p}stages"></div>
-  <div class="row"><label>Actual volume used <small>(optional)</small></label><div class="f"><input id="${p}av" type="number" inputmode="decimal" placeholder="blank = calculated"></div><select id="${p}avu" class="unit">${opts(V,'mL')}</select></div>
+  <div class="row"><label>Make-up volume <small>(optional – weight adjusts)</small></label><div class="f"><input id="${p}av" type="number" inputmode="decimal" placeholder="blank = from weight"></div><select id="${p}avu" class="unit">${opts(V,'mL')}</select></div>
   <div class="prep" id="${p}prep"></div></section>`;
 }
 $('app').innerHTML=block('s','Standard',true)+block('m','Sample',false);
@@ -259,22 +283,27 @@ function calcSide(p,isStd){
   const av=num(p+'av')*V[$(p+'avu').value];
   const vUsed=isFinite(av)&&av>0?av:v1;
   const avActive=isFinite(av)&&av>0;
-  const cActual=api/(vUsed*df);                               // mg/mL final
-  const flask=FLASKS.find(x=>x>=v1)||v1;
-  const scale=flask/v1;
-  return {avActive,weigh,cf,tc,w,api,df,steps,v1,vUsed,cActual,flask,scale,isStd,n,pot};
+  // volume + aliquots are set -> the weight is recalculated to give the target concentration
+  const kW=avActive&&api>0?(tc*vUsed*df)/api:1;
+  const wOrig=w,apiAdj=api*kW,weighAdj=weigh*kW,wAdj=w*kW;
+  const cActual=apiAdj/(vUsed*df);                            // mg/mL final
+  const vBase=avActive?vUsed:v1;
+  const flask=FLASKS.find(x=>x>=vBase)||vBase;
+  const scale=flask/vBase;
+  return {avActive,weigh:weighAdj,cf,tc,w:wAdj,wOrig,api:apiAdj,df,steps,v1,vBase,vUsed,cActual,flask,scale,isStd,n,pot,kW};
 }
 function render(p,isStd){
   const r=calcSide(p,isStd);
   if(!isFinite(r.v1)||r.v1<=0){$(p+'prep').innerHTML='Enter valid values';return r}
-  let h=`<div>Used volume: <b class="vol">${fv(r.v1)}</b></div>`;
+  let h=`<div>${r.avActive?'Make-up volume (set)':'Used volume'}: <b class="vol">${fv(r.vBase)}</b></div>`;
   h+=`Weigh <b>${fw(r.weigh)}</b>${isStd?` (original amount; ≙ given ${fw(r.w)}${r.cf!==1||r.pot!==1?`, potency ${fmt(r.pot*100)}% × CF ${fmt(r.cf)}`:''})`:` (≙ ${fw(r.api)} API)`}, dissolve and make up to <b>${fv(r.vUsed)}</b>.`;
   let c=r.api/r.vUsed;
-  r.steps.forEach((s,i)=>{c=c*s.a/s.f;h+=`<br>Step ${i+1}: pipette <b>${fv(s.a)}</b>${i===0&&r.avActive?' <small>(auto-adjusted for actual volume)</small>':''} → make up to <b>${fv(s.f)}</b>.`});
+  r.steps.forEach((s,i)=>{c=c*s.a/s.f;h+=`<br>Step ${i+1}: pipette <b>${fv(s.a)}</b> → make up to <b>${fv(s.f)}</b>.`});
   if(!isStd){const avg=num('mavg')*W[$('mavgu').value],lc=num('mlc')*W[$('mlcu').value];
     if(avg>0&&lc>0)h+=`<br><small>Sample weight ${fw(r.w)} = equivalent ${fw(r.api)} × (avg wt ${fw(avg)} ÷ label claim ${fw(lc)})</small>`;}
+  if(r.avActive)h+=`<br><small>Weight adjusted for the set volume ${fv(r.vUsed)} and the dilution steps: given ${fw(r.wOrig)} → <b>${fw(r.w)}</b>${r.kW<0.2||r.kW>5?' ⚠ check the volume / aliquots':''}</small>`;
   h+=`<br>Total dilution factor: <b>${fmt(r.df)}</b> · Final conc: <b>${fmt(r.cActual,5)} mg/mL</b>`;
-  if(Math.abs(r.flask-r.v1)/r.v1>1e-6)h+=`<br><small>Nearest flask ${fv(r.flask)}: weigh ${fw(r.weigh*r.scale)}${isStd?'':` (≙ ${fw(r.api*r.scale)} API)`}</small>`;
+  if(Math.abs(r.flask-r.vBase)/r.vBase>1e-6)h+=`<br><small>Nearest flask ${fv(r.flask)}: weigh ${fw(r.weigh*r.scale)}${isStd?'':` (≙ ${fw(r.api*r.scale)} API)`}</small>`;
   $(p+'prep').innerHTML=h;
   return r;
 }
@@ -305,7 +334,6 @@ function refresh(ev){
   else if(['itype','mdd','mddu','ilevel','icustom','irepc','mc','mcu'].includes(tid))STDMAN=false;
   if(MODE==='I')autoStd();
   if(ev&&ev.target&&ev.target.id)autoWeight(ev.target.id);
-  if(ev&&ev.target&&ev.target.id){autoAdjust('s',ev.target.id);autoAdjust('m',ev.target.id)}
   render('s',true);render('m',false);
 }
 document.querySelectorAll('#app input,#app select').forEach(e=>e.addEventListener('input',refresh));
@@ -340,9 +368,9 @@ function setTab(t){
   ['aResp','aFormula'].forEach(i=>$(i).classList.toggle('hide',t!=='A'));
   ['impCrit','impResp','impLevel','impLoq','iFormula'].forEach(i=>$(i).classList.toggle('hide',!imp));
   ['nitSec','nFormula'].forEach(i=>$(i).classList.toggle('hide',!nit));
-  $('app').classList.toggle('hide',nit||t==='R'||t==='L');
-  $('rsdSec').classList.toggle('hide',t!=='R');$('linSec').classList.toggle('hide',t!=='L');
-  $('tR').classList.toggle('on',t==='R');$('tL').classList.toggle('on',t==='L');
+  $('app').classList.toggle('hide',['N','R','L','V','M'].includes(t));
+  ['rsdSec','linSec','recSec','molSec'].forEach((id,k)=>$(id).classList.toggle('hide',t!==['R','L','V','M'][k]));
+  ['tR','tL','tV','tM'].forEach((id,k)=>$(id).classList.toggle('on',t===['R','L','V','M'][k]));
   if(t!=='A')$('res').classList.add('hide');
   if(!imp)$('impRes').classList.add('hide');
   if(!nit)$('nitRes').classList.add('hide');
@@ -350,10 +378,10 @@ function setTab(t){
   else{$('app').insertBefore($('ssec'),$('msec'));$('app').appendChild($('impLevel'));$('app').appendChild($('impLoq'))}
   STDMAN=false;
   if(imp&&!setTab.done){setTab.done=1;$('sd').value='3';}
-  document.querySelector('header p').textContent=imp?'Sample conc + ICH limit → standard preparation':nit?'AI ÷ MDD limit → standard preparation & result':t==='R'?'Mean, SD and %RSD of replicate areas':t==='L'?'Slope, intercept, r, % recovery':'Enter target concentration → get preparation volumes';
+  document.querySelector('header p').textContent=imp?'Sample conc + ICH limit → standard preparation':nit?'AI ÷ MDD limit → standard preparation & result':t==='R'?'Mean, SD and %RSD of replicate areas':t==='L'?'Slope, intercept, r, % recovery':t==='V'?'Recovery of standard 2 against standard 1':t==='M'?'Solute + strength → how to prepare':'Enter target concentration → get preparation volumes';
   refresh();
 }
-$('tA').onclick=()=>setTab('A');$('tI').onclick=()=>setTab('I');$('tN').onclick=()=>setTab('N');$('tR').onclick=()=>setTab('R');$('tL').onclick=()=>setTab('L');
+$('tA').onclick=()=>setTab('A');$('tI').onclick=()=>setTab('I');$('tN').onclick=()=>setTab('N');$('tR').onclick=()=>setTab('R');$('tL').onclick=()=>setTab('L');$('tV').onclick=()=>setTab('V');$('tM').onclick=()=>setTab('M');
 
 // ---------- ICH thresholds (m = MDD in mg) ----------
 function thr(type,m){
@@ -486,7 +514,7 @@ renderThr();
 const NIT=[['NDMA',96],['NDEA',26.5],['NMBA',96],['NMPA',26.5],['NIPEA',26.5],['NDIPA',26.5],['NDBA',26.5],
  ['CPCA Category 1',26.5],['CPCA Category 2',100],['CPCA Category 3',400],['CPCA Category 4',1500],['CPCA Category 5',1500],
  ['ICH M7 TTC (1.5 µg/day)',1500],['Custom',NaN]];
-$('nmddu').innerHTML=opts(W,'mg');$('nscu').innerHTML=opts(C,'mg/mL');$('nswu').innerHTML=opts(W,'mg');
+$('nsvu').innerHTML=opts(V,'mL');$('nmddu').innerHTML=opts(W,'mg');$('nscu').innerHTML=opts(C,'mg/mL');$('nswu').innerHTML=opts(W,'mg');
 const dilOpts=NAMES.map((n,i)=>`<option value="${i+1}">${n}</option>`).join('');
 $('nsd').innerHTML=dilOpts;
 const num2=e=>parseFloat(e.value);
@@ -519,11 +547,12 @@ function nitCtx(){
 // ---- sample preparation ----
 function nitSample(){
   const box=$('nsinfo'),x=nitCtx();
-  const w=num('nsw')*W[$('nswu').value];
   const st=readSteps($('nssteps')),df=dfOf(st);
-  if(!(w>0)||!(x.cu>0)||!isFinite(df)){box.textContent='Enter sample weight and concentration.';return}
-  const v1=w/(x.cu*df);
-  let h=`Weigh <b>${fw(w)}</b>, dissolve and make up to <b>${fv(v1)}</b>.`;
+  const vIn=num('nsv')*V[$('nsvu').value],byVol=vIn>0;
+  const w=byVol?x.cu*vIn*df:num('nsw')*W[$('nswu').value];
+  if(!(w>0)||!(x.cu>0)||!isFinite(df)){box.textContent='Enter sample weight (or volume) and concentration.';return}
+  const v1=byVol?vIn:w/(x.cu*df);
+  let h=`Weigh <b>${fw(w)}</b>${byVol?' <small>(adjusted for the set volume and dilution)</small>':''}, dissolve and make up to <b>${fv(v1)}</b>.`;
   st.forEach((s,i)=>{h+=`<br>Step ${i+1}: pipette <b>${fv(s.a)}</b> → make up to <b>${fv(s.f)}</b>.`});
   h+=`<br>Total dilution factor: <b>${fmt(df)}</b> · Final sample conc: <b>${fmt(x.cu,5)} mg/mL</b>`;
   box.innerHTML=h;
@@ -588,7 +617,7 @@ function nitInfo(){
     box.innerHTML=h;
   });
 }
-['nmdd','nmddu','nsc','nscu','nsw','nswu','nlev','nloq'].forEach(i=>$(i).addEventListener('input',nitInfo));
+['nmdd','nmddu','nsc','nscu','nsw','nswu','nsv','nsvu','nlev','nloq'].forEach(i=>$(i).addEventListener('input',nitInfo));
 $('addnit').onclick=()=>addNit(13);
 addNit(0);addNit(1);
 
@@ -751,6 +780,95 @@ $('linmode').addEventListener('input',()=>{$('linex').textContent=$('linmode').v
 $('linadd').onclick=()=>{ if($('linmode').value==='S')addLinP('','',''); else addLin('',''); };
 $('linex').textContent='Example data shown. Change the added amount or dilution and the concentration updates automatically.';
 linCalc();
+
+// ---------- Recovery: two standards ----------
+function recBlock(k,name,wt,v1,areas){
+  const d=document.createElement('div');d.className='sub imp rrow';
+  d.innerHTML=`<h3>${name}</h3>
+  <div class="row"><label>Weight</label><div class="f"><input class="rw" type="number" inputmode="decimal" step="any" value="${wt}"></div><select class="rwu unit">${opts(W,'mg')}</select></div>
+  <div class="row"><label>Purity / potency (%)</label><div class="f"><input class="rp" type="number" inputmode="decimal" step="any" value="100"></div></div>
+  <div class="row"><label>Made up to</label><div class="f"><input class="rv" type="number" inputmode="decimal" step="any" value="${v1}"></div><select class="rvu unit">${opts(V,'mL')}</select></div>
+  <div class="row"><label>Dilution</label><div class="f"><select class="rd">${dilOpts}</select></div></div>
+  <div class="rsteps"></div>
+  <div class="row"><label>Peak areas <small>(one or more; mean is used)</small></label></div>
+  <textarea class="ra" rows="3">${areas}</textarea>
+  <div class="prep rinfo" style="margin-top:8px"></div>`;
+  $('recbox').appendChild(d);
+  d.querySelectorAll('input,select,textarea').forEach(e=>e.addEventListener('input',recCalc));
+  d.querySelector('.rd').addEventListener('input',e=>{buildSteps(d.querySelector('.rsteps'),+e.target.value,recCalc);recCalc()});
+  d.querySelector('.rd').value='2';buildSteps(d.querySelector('.rsteps'),2,recCalc);
+}
+recBlock(1,'Standard 1 (reference)',20,100,'50120\n50310\n49980');
+recBlock(2,'Standard 2 (to be checked)',20.4,100,'50960\n51100\n50840');
+function recCalc(){
+  const R=[];
+  document.querySelectorAll('#recbox .rrow').forEach(d=>{
+    const w=num2(d.querySelector('.rw'))*W[d.querySelector('.rwu').value],pot=(num2(d.querySelector('.rp'))||100)/100;
+    const v=num2(d.querySelector('.rv'))*V[d.querySelector('.rvu').value];
+    const st=readSteps(d.querySelector('.rsteps')),df=dfOf(st),c=w*pot/v/df;     // mg/mL
+    const a=nums(d.querySelector('.ra').value),n=a.length,mean=n?a.reduce((x,y)=>x+y,0)/n:NaN;
+    const rsd=n>1?Math.sqrt(a.reduce((x,y)=>x+(y-mean)**2,0)/(n-1))/mean*100:NaN;
+    let h=`Weigh ${fw(w)} (${fmt(pot*100)}%) → ${fv(v)}`;
+    st.forEach((x,i)=>{h+=`<br>Step ${i+1}: pipette ${fv(x.a)} → ${fv(x.f)}`});
+    h+=`<br>Dilution factor: <b>${fmt(df*1)}</b> · Conc: <b>${fmt(c*1000,6)} µg/mL</b><br>Mean area: <b>${fmt(mean,6)}</b> (n=${n}${isFinite(rsd)?`, %RSD ${fmt(rsd,3)}`:''})`;
+    d.querySelector('.rinfo').innerHTML=h;
+    R.push({c,mean,rsd,n});
+  });
+  const out=$('recout'),[s1,s2]=R;
+  if(!s1||!s2||!(s1.c>0)||!(s2.c>0)||!(s1.mean>0)||!(s2.mean>0)){out.innerHTML='<div class="prep">Enter weight, volume, dilution and area for both standards.</div>';return}
+  const rec=(s2.mean/s1.mean)*(s1.c/s2.c)*100,exp2=s1.mean*s2.c/s1.c;
+  const lo=parseFloat($('reclo').value),hi=parseFloat($('rechi').value),ok=(!isFinite(lo)||rec>=lo)&&(!isFinite(hi)||rec<=hi);
+  out.innerHTML=`<div class="result"><div class="big ${ok?'pass':'fail'}">${fmt(rec,5)} %</div><div><b class="${ok?'pass':'fail'}">${ok?'PASS':'FAIL'}</b> (${isFinite(lo)?lo:'–'}–${isFinite(hi)?hi:'–'}%)</div></div>
+  <div class="card">Conc 1: <b>${fmt(s1.c*1000,6)} µg/mL</b> · Conc 2: <b>${fmt(s2.c*1000,6)} µg/mL</b><br>Conc ratio (C<sub>2</sub> ÷ C<sub>1</sub>): ${fmt(s2.c/s1.c,6)}<br>Area ratio (A<sub>2</sub> ÷ A<sub>1</sub>): ${fmt(s2.mean/s1.mean,6)}<br>Expected area of standard 2: ${fmt(exp2,6)} · found ${fmt(s2.mean,6)}<br>Response (area ÷ µg/mL): std 1 ${fmt(s1.mean/(s1.c*1000),6)} · std 2 ${fmt(s2.mean/(s2.c*1000),6)}</div>`;
+}
+['reclo','rechi'].forEach(i=>$(i).addEventListener('input',recCalc));
+recCalc();
+
+// ---------- Molarity / Normality ----------
+// [name, formula, MW, assay %, specific gravity (liquids), n-factor]
+const SOL=[
+ ['Hydrochloric acid','HCl',36.46,37,1.19,1],['Sulphuric acid','H2SO4',98.08,98,1.84,2],['Nitric acid','HNO3',63.01,69,1.41,1],
+ ['Phosphoric acid (ortho)','H3PO4',98.00,85,1.685,3],['Glacial acetic acid','CH3COOH',60.05,99.7,1.05,1],['Perchloric acid','HClO4',100.46,70,1.67,1],
+ ['Formic acid','HCOOH',46.03,98,1.22,1],['Trifluoroacetic acid','CF3COOH',114.02,99,1.489,1],['Ammonia solution','NH3',17.03,25,0.91,1],
+ ['Triethylamine','C6H15N',101.19,99,0.726,1],['Hydrogen peroxide','H2O2',34.01,30,1.11,2],
+ ['Sodium hydroxide','NaOH',40.00,98,'',1],['Potassium hydroxide','KOH',56.11,85,'',1],['Sodium carbonate','Na2CO3',105.99,99.5,'',2],
+ ['Sodium bicarbonate','NaHCO3',84.01,99,'',1],['Sodium chloride','NaCl',58.44,99.5,'',1],['Potassium chloride','KCl',74.55,99,'',1],
+ ['Potassium dihydrogen phosphate','KH2PO4',136.09,99,'',1],['Dipotassium hydrogen phosphate','K2HPO4',174.18,99,'',1],
+ ['Disodium hydrogen phosphate','Na2HPO4',141.96,99,'',1],['Disodium hydrogen phosphate dihydrate','Na2HPO4·2H2O',177.99,99,'',1],
+ ['Sodium acetate trihydrate','CH3COONa·3H2O',136.08,99,'',1],['Ammonium acetate','CH3COONH4',77.08,98,'',1],['Ammonium formate','HCOONH4',63.06,99,'',1],
+ ['Oxalic acid dihydrate','C2H2O4·2H2O',126.07,99.5,'',2],['Potassium hydrogen phthalate','KHC8H4O4',204.22,99.95,'',1],
+ ['Citric acid monohydrate','C6H8O7·H2O',210.14,99.5,'',3],['Potassium permanganate','KMnO4',158.03,99,'',5],['Potassium dichromate','K2Cr2O7',294.18,99.9,'',6],
+ ['Sodium thiosulphate pentahydrate','Na2S2O3·5H2O',248.18,99.5,'',1],['Silver nitrate','AgNO3',169.87,99.8,'',1],['Sodium nitrite','NaNO2',69.00,99,'',1],
+ ['Disodium EDTA dihydrate','C10H14N2Na2O8·2H2O',372.24,99,'',2],['Iodine','I2',253.81,99.8,'',2],['Tris (tromethamine)','C4H11NO3',121.14,99,'',1],
+ ['Custom solute','',100,100,'',1]];
+$('msol').innerHTML='<optgroup label="Liquids (concentrated)">'+SOL.map((x,i)=>x[4]!==''?`<option value="${i}">${x[0]}${x[1]?' ('+x[1]+')':''}</option>`:'').join('')+'</optgroup><optgroup label="Solids">'+SOL.map((x,i)=>x[4]===''&&x[0]!=='Custom solute'?`<option value="${i}">${x[0]}${x[1]?' ('+x[1]+')':''}</option>`:'').join('')+'</optgroup><option value="'+(SOL.length-1)+'">Custom solute</option>';
+$('mvolu').innerHTML=opts({mL:1,L:1000},'mL');
+function molUnits(){const k=$('mkind').value,cur=$('mvu').value;$('mvu').innerHTML=k==='M'?'<option>M</option><option>mM</option>':'<option>N</option><option>mN</option>';if([...$('mvu').options].some(o=>o.value===cur))$('mvu').value=cur}
+function molLoad(){const x=SOL[+$('msol').value];$('mmw').value=x[2];$('mas').value=x[3];$('msg').value=x[4];$('mnf').value=x[5];molCalc()}
+function molCalc(){
+  const out=$('molout'),mw=num('mmw'),as=num('mas')/100,sg=num('msg'),nf=num('mnf');
+  const liquid=isFinite(sg)&&sg>0,name=SOL[+$('msol').value][0];
+  $('msnote').innerHTML=liquid?`Liquid: ${fmt(num('mas'))}% w/w, SG ${fmt(sg)} → concentrated reagent = <b>${fmt(10*num('mas')*sg/mw,4)} M</b> = <b>${fmt(10*num('mas')*sg/mw*nf,4)} N</b>`:'Solid: weighed directly (leave specific gravity blank).';
+  const raw=num('mval'),k=$('mkind').value,u=$('mvu').value;
+  const x=u[0]==='m'?raw/1000:raw;                        // M or N
+  const M=k==='M'?x:x/nf,N=k==='M'?x*nf:x;
+  const vL=num('mvol')*(($('mvolu').value==='L')?1000:1)/1000;
+  if(!(mw>0)||!(as>0)||!(nf>0)||!(x>0)||!(vL>0)){out.textContent='Enter solute data, strength and final volume.';return}
+  const pure=M*mw*vL,reag=pure/as;                         // g pure / g reagent
+  const vF=vL*1000;
+  let h=`<b>${fmt(M,5)} M</b> = <b>${fmt(N,5)} N</b> (n = ${fmt(nf)}) · ${fmt(M*mw,5)} g/L pure · equivalent weight ${fmt(mw/nf,5)}<br><br>`;
+  if(liquid){
+    const ml=reag/sg;
+    h+=`<b>To prepare ${fv(vF)}:</b><br>1. Take about ${fv(vF*0.5)} of water in a ${fv(vF)} volumetric flask.<br>2. Measure <b>${fv(ml)}</b> of ${name} (${fmt(num('mas'))}% w/w, SG ${fmt(sg)}) and add it slowly to the water, mixing. <small>Always add the reagent to water.</small><br>3. Cool to room temperature, make up to <b>${fv(vF)}</b> with water and mix.<br><small>Mass of reagent = ${fmt(reag,5)} g (${fmt(pure,5)} g pure ÷ ${fmt(as,4)}); volume = mass ÷ SG.</small>`;
+  }else{
+    h+=`<b>To prepare ${fv(vF)}:</b><br>1. Weigh <b>${fw(reag*1000)}</b> of ${name}${as<1?` (assay ${fmt(num('mas'))}%)`:''}.<br>2. Dissolve in about ${fv(vF*0.7)} of water in a ${fv(vF)} volumetric flask.<br>3. Make up to <b>${fv(vF)}</b> with water and mix.<br><small>Weight = M × MW × V ÷ assay = ${fmt(M,5)} × ${fmt(mw,6)} × ${fmt(vL,5)} L ÷ ${fmt(as,4)}.</small>`;
+  }
+  out.innerHTML=h;
+}
+$('msol').addEventListener('input',molLoad);
+['mmw','mas','msg','mnf','mval','mvol','mvolu','mvu'].forEach(i=>$(i).addEventListener('input',molCalc));
+$('mkind').addEventListener('input',()=>{molUnits();molCalc()});
+molUnits();$('msol').value='0';molLoad();
 </script>
 
 </body></html>
